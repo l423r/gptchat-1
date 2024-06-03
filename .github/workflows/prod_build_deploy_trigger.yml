@@ -64,4 +64,4 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           repo: init-repo
           owner: l423r
-          event_type: prod-gpt-chat-1-deploy
+          event_type: prod-gptchat-1-deploy
