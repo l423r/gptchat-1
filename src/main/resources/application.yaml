@@ -10,3 +10,8 @@ spring:
 
 flyway:
   locations: classpath:db/migration
+
+server:
+  port: 8089
+  servlet:
+    context-path: /gptchat-1
