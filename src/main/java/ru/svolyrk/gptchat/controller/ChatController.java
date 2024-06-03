@@ -1,6 +1,7 @@
 package ru.svolyrk.gptchat.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import ru.svolyrk.gptchat.dto.ChatDTO;
 import ru.svolyrk.gptchat.dto.MessageDTO;
 import ru.svolyrk.gptchat.service.ChatService;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/chats")
 public class ChatController {
@@ -45,8 +47,10 @@ public class ChatController {
     private String getClientIp(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
         if (xfHeader == null) {
+            log.info("request.getRemoteAddr() {}", request.getRemoteAddr());
             return request.getRemoteAddr();
         }
+        log.info("xfHeader {}", xfHeader);
         return xfHeader.split(",")[0];
     }
 }

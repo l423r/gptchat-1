@@ -15,3 +15,14 @@ server:
   port: 8089
   servlet:
     context-path: /gptchat-1
+
+
+logging:
+  level:
+    org:
+      springframework:
+        web:
+          client:
+            RestTemplate: DEBUG
+      apache:
+        http: DEBUG
