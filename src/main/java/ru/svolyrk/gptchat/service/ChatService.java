@@ -5,6 +5,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import ru.svolyrk.gptchat.dto.ChatDTO;
 import ru.svolyrk.gptchat.dto.MessageDTO;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class ChatService {
 
     @Autowired
@@ -35,6 +37,7 @@ public class ChatService {
         return chatRepository.findById(id).map(this::convertToDTO).orElse(null);
     }
 
+    @Transactional
     public ChatDTO createChat(ChatDTO chatDTO) {
         Chat chat = new Chat();
         chat.setTitle(chatDTO.getTitle());
@@ -43,6 +46,7 @@ public class ChatService {
         return convertToDTO(savedChat);
     }
 
+    @Transactional
     public MessageDTO addMessageToChat(Long chatId, MessageDTO messageDTO) {
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new IllegalArgumentException("Chat not found"));
         Message message = new Message();
@@ -53,6 +57,7 @@ public class ChatService {
         return convertToDTO(savedMessage);
     }
 
+    @Transactional
     public MessageDTO sendMessageToGpt(Long chatId, MessageDTO messageDTO, String apiToken, String clientIp) {
         // Добавляем сообщение от пользователя
         MessageDTO userMessage = addMessageToChat(chatId, messageDTO);
