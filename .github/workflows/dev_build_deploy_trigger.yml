@@ -63,7 +63,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           repository: l423r/init-repo
-          event-type: dev-gptchat-1-deploy
+          event-type: eu-gptchat-1-deploy
           client-payload: '{"message": "${{ github.event.commits[0].message }}", "sha": "${{ github.sha }}"}'
   finish:
     needs: trigger_to_deploy_docker_img

@@ -1,121 +1,85 @@
 package ru.svolyrk.gptchat.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
-import ru.svolyrk.gptchat.dto.ChatDTO;
-import ru.svolyrk.gptchat.dto.MessageDTO;
-import ru.svolyrk.gptchat.model.Chat;
-import ru.svolyrk.gptchat.model.Message;
-import ru.svolyrk.gptchat.repository.ChatRepository;
-import ru.svolyrk.gptchat.repository.MessageRepository;
+import reactor.core.publisher.Mono;
+import ru.svolyrk.gptchat.entity.Conversation;
+import ru.svolyrk.gptchat.grpc.ChatResponse;
+import ru.svolyrk.gptchat.repository.ConversationRepository;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
-@Transactional(readOnly = true)
 public class ChatService {
 
     @Autowired
-    private ChatRepository chatRepository;
+    private Gpt4Service gpt4Service;
 
     @Autowired
-    private MessageRepository messageRepository;
+    private ConversationRepository conversationRepository;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    public Mono<ChatResponse> handleChat(ru.svolyrk.gptchat.grpc.ChatRequest request) {
+        String conversationId = request.getConversationId();
+        String message = request.getMessage();
 
-    public List<ChatDTO> getAllChats() {
-        return chatRepository.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
+        return getConversation(conversationId).flatMap(context -> {
+            // Добавляем сообщение пользователя в контекст
+            Map<String, String> userMessage = new HashMap<>();
+            userMessage.put("role", "user");
+            userMessage.put("content", message);
+            context.add(userMessage);
+
+            // Вызываем GPT-4 API для получения ответа
+            return gpt4Service.getGpt4Response(context).flatMap(response -> {
+                // Добавляем ответ GPT в контекст
+                Map<String, String> gptResponse = new HashMap<>();
+                gptResponse.put("role", "assistant");
+                gptResponse.put("content", response);
+                context.add(gptResponse);
+
+                // Сохраняем контекст диалога в базе данных
+                return saveConversation(conversationId, context).thenReturn(ChatResponse.newBuilder()
+                        .setConversationId(conversationId)
+                        .setResponse(response)
+                        .build());
+            });
+        });
     }
 
-    public ChatDTO getChatById(Long id) {
-        return chatRepository.findById(id).map(this::convertToDTO).orElse(null);
+    public Mono<Void> saveConversation(String conversationId, List<Map<String, String>> context) {
+        return conversationRepository.findByConversationId(conversationId)
+                .defaultIfEmpty(new Conversation())
+                .flatMap(conversation -> {
+                    conversation.setConversationId(conversationId);
+
+                    List<String> messages = new ArrayList<>();
+                    for (Map<String, String> message : context) {
+                        messages.add(message.get("role") + ": " + message.get("content"));
+                    }
+                    conversation.setMessages(messages);
+
+                    return conversationRepository.save(conversation).then();
+                });
     }
 
-    @Transactional
-    public ChatDTO createChat(ChatDTO chatDTO) {
-        Chat chat = new Chat();
-        chat.setTitle(chatDTO.getTitle());
-        chat.setMessages(chatDTO.getMessages().stream().map(this::convertToEntity).collect(Collectors.toList()));
-        Chat savedChat = chatRepository.save(chat);
-        return convertToDTO(savedChat);
-    }
-
-    @Transactional
-    public MessageDTO addMessageToChat(Long chatId, MessageDTO messageDTO) {
-        Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new IllegalArgumentException("Chat not found"));
-        Message message = new Message();
-        message.setSender(messageDTO.getSender());
-        message.setContent(messageDTO.getContent());
-        message.setChat(chat);
-        Message savedMessage = messageRepository.save(message);
-        return convertToDTO(savedMessage);
-    }
-
-    @Transactional
-    public MessageDTO sendMessageToGpt(Long chatId, MessageDTO messageDTO, String apiToken, String clientIp) {
-        // Добавляем сообщение от пользователя
-        MessageDTO userMessage = addMessageToChat(chatId, messageDTO);
-
-        // Создаем запрос к GPT-4 API
-        String gptApiUrl = "https://api.openai.com/v1/engines/davinci-codex/completions";
-        String requestBody = String.format("{\"prompt\": \"%s\", \"max_tokens\": 150}", messageDTO.getContent());
-
-        HttpHeaders headers = createHeaders(apiToken);
-        headers.set("X-Forwarded-For", clientIp);
-
-        String response = restTemplate.postForObject(
-            gptApiUrl,
-            new HttpEntity<>(requestBody, headers),
-            String.class
-        );
-
-        // Обрабатываем ответ GPT-4 и добавляем его как сообщение от GPT
-        String gptResponseContent = extractGptResponseContent(response);
-        MessageDTO gptMessage = new MessageDTO();
-        gptMessage.setSender("gpt");
-        gptMessage.setContent(gptResponseContent);
-
-        return addMessageToChat(chatId, gptMessage);
-    }
-
-    private HttpHeaders createHeaders(String apiToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiToken);
-        return headers;
-    }
-
-    private String extractGptResponseContent(String response) {
-        // Реализуйте парсинг ответа GPT-4 API и извлечение текста сообщения
-        return response; // Пример, необходимо адаптировать в зависимости от структуры ответа
-    }
-
-    private ChatDTO convertToDTO(Chat chat) {
-        ChatDTO chatDTO = new ChatDTO();
-        chatDTO.setId(chat.getId());
-        chatDTO.setTitle(chat.getTitle());
-        chatDTO.setMessages(chat.getMessages().stream().map(this::convertToDTO).collect(Collectors.toList()));
-        return chatDTO;
-    }
-
-    private MessageDTO convertToDTO(Message message) {
-        MessageDTO messageDTO = new MessageDTO();
-        messageDTO.setId(message.getId());
-        messageDTO.setSender(message.getSender());
-        messageDTO.setContent(message.getContent());
-        return messageDTO;
-    }
-
-    private Message convertToEntity(MessageDTO messageDTO) {
-        Message message = new Message();
-        message.setSender(messageDTO.getSender());
-        message.setContent(messageDTO.getContent());
-        return message;
+    public Mono<List<Map<String, String>>> getConversation(String conversationId) {
+        return conversationRepository.findByConversationId(conversationId)
+                .map(conversation -> {
+                    List<Map<String, String>> context = new ArrayList<>();
+                    for (String message : conversation.getMessages()) {
+                        String[] parts = message.split(": ", 2);
+                        if (parts.length == 2) {
+                            Map<String, String> messageMap = new HashMap<>();
+                            messageMap.put("role", parts[0]);
+                            messageMap.put("content", parts[1]);
+                            context.add(messageMap);
+                        }
+                    }
+                    return context;
+                })
+                .defaultIfEmpty(new ArrayList<>());
     }
 }

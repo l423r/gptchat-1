@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "ru.svolyrk.gptchat.grpc";
+option java_outer_classname = "ChatbotProto";
+
+service ChatService {
+  rpc Chat (ChatRequest) returns (ChatResponse);
+  rpc TextToSpeech (TextToSpeechRequest) returns (TextToSpeechResponse);
+  rpc SpeechToText (SpeechToTextRequest) returns (SpeechToTextResponse);
+  rpc ExtractMainIdea (ExtractMainIdeaRequest) returns (ExtractMainIdeaResponse);
+}
+
+message ChatRequest {
+  string conversationId = 1;
+  string message = 2;
+}
+
+message ChatResponse {
+  string conversationId = 1;
+  string response = 2;
+}
+
+message TextToSpeechRequest {
+  string text = 1;
+}
+
+message TextToSpeechResponse {
+  bytes audioContent = 1;
+}
+
+message SpeechToTextRequest {
+  bytes audioData = 1;
+}
+
+message SpeechToTextResponse {
+  string transcript = 1;
+}
+
+message ExtractMainIdeaRequest {
+  string text = 1;
+}
+
+message ExtractMainIdeaResponse {
+  string mainIdea = 1;
+}

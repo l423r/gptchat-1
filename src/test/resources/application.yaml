@@ -10,9 +10,6 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
-    url: jdbc:postgresql://localhost:5432/gpt-chat-v2
-    user: ${spring.r2dbc.username}
-    password: ${spring.r2dbc.password}
     locations: classpath:db/migration
 
 server:
@@ -21,13 +18,7 @@ server:
     context-path: /gptchat-1
 
 
-gpt:
+gpt4:
   api:
     url: https://api.openai.com
     key: your_api_key
-
-logging:
-  level:
-    root: INFO
-    org:
-      flywaydb: DEBUG
