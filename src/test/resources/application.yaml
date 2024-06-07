@@ -18,7 +18,7 @@ server:
     context-path: /gptchat-1
 
 
-gpt4:
+gpt:
   api:
     url: https://api.openai.com
     key: your_api_key
