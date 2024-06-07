@@ -1,4 +1,5 @@
-FROM openjdk:17-jdk-slim
+#FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-alpine
 ARG JAR_FILE=target/gptchat.jar
 WORKDIR /opt/app
 COPY ${JAR_FILE} app.jar
