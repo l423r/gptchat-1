@@ -175,6 +175,7 @@
     </dependencies>
 
     <build>
+        <finalName>${project.artifactId}</finalName>
         <extensions>
             <!-- Protobuf Maven Plugin -->
             <extension>
