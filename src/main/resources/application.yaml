@@ -1,6 +1,6 @@
 spring:
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/gpt-chat-v2
+    url: r2dbc:postgresql://localhost:5432/gptchat-1
     username: postgres
     password: postgres
   jpa:
@@ -10,7 +10,7 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
-    url: jdbc:postgresql://localhost:5432/gpt-chat-v2
+    url: jdbc:postgresql://localhost:5432/gptchat-1
     user: ${spring.r2dbc.username}
     password: ${spring.r2dbc.password}
     locations: classpath:db/migration
